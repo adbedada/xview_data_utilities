@@ -11,8 +11,11 @@ chip_dir = "/Users/eddiebedada/datasets/xview/"
 
 output_path = './output/'
 bboxes_text = 'bboxes.txt'
+
 #Load an image
-src = os.path.join(chip_dir,'planes/1076.tif')
+img_dir = os.path.join(chip_dir, 'planes')
+
+src = os.path.join(chip_dir, 'planes/80.tif')
 json_file = os.path.join(chip_dir,'xView_train.geojson')
 
 
@@ -41,7 +44,6 @@ def get_labels_for_chip(src, json_file):
 
 def get_names_for_classes(txt_file):
     """
-
     :param txt_file: path to class_labels file
     :return: dict of classes with labels
     """
@@ -55,12 +57,12 @@ def get_names_for_classes(txt_file):
         return labels
 
 
-def chip_image(src,json_file):
+def chip_image(src, json_file):
 
     img = Image.open(src)
     arr = np.array(img)
     coords, classes = get_labels_for_chip(src, json_file)
-    c_img, c_box, c_cls = wv.chip_image(img=arr, coords=coords, classes=classes, shape=(500, 500))
+    c_img, c_box, c_cls = wv.chip_image(img=arr, coords=coords, classes=classes, shape=(256, 256))
 
     return c_img, c_box, c_cls
 
@@ -79,6 +81,9 @@ def chip_and_save_image(src, json_file, output_path, file_extension='.png', pref
             if value == prefered_label:
                 selected_labels[cls] = c_cls[cls]
 
+    chip_name = image_name(src)
+    base_name = chip_name.split('.')[0]
+
 
     # extract bbox
 
@@ -88,7 +93,9 @@ def chip_and_save_image(src, json_file, output_path, file_extension='.png', pref
                 selected_bboxes[box_id] = c_box[box_id]
 
     # save bboxes
-    w = csv.writer(open(os.path.join(output_path, bboxes_text), "w"))
+    labels_file_name = "{}{}_{}".format(output_path, base_name, bboxes_text)
+
+    w = csv.writer(open(labels_file_name, "w"))
     for key, val in selected_bboxes.items():
         w.writerow([key, val.astype(np.uint8)])
 
@@ -98,7 +105,7 @@ def chip_and_save_image(src, json_file, output_path, file_extension='.png', pref
             if label == i:
                 expand_img = np.expand_dims(array, axis=0)
                 selected_chips.append(expand_img)
-                output_filename_n = "{}{}{}".format(output_path, i, file_extension)
+                output_filename_n = "{}{}_{}{}".format(output_path, base_name, i, file_extension)
                 save_image = Image.fromarray(array)
                 save_image.save(output_filename_n, "JPEG")
 
@@ -107,6 +114,22 @@ def chip_and_save_image(src, json_file, output_path, file_extension='.png', pref
 
 
 
+def bulk_chip_process(img_dir, json_file):
+
+    for r, d, f in os.walk(img_dir):
+        for name in f:
+            chip_name = name.split('.')[0]
+#            crds, cls = get_labels_for_chip(src, json_file)
+            #print(src)
+            src = os.path.join(img_dir, name)
+            #arr = np.array(img)
+
+            #c_img, c_box, c_cls = chip_image(src, json_file)
+            #print(c_cls)
+            print(chip_and_save_image(src, json_file, output_path))
+
+
+bulk_chip_process(img_dir, json_file)
 
 ############ test #######
 
@@ -116,4 +139,3 @@ def chip_and_save_image(src, json_file, output_path, file_extension='.png', pref
 #chip_image(src, json_file)
 
 #print(chip_and_save_image(src, json_file, output_path))
-
